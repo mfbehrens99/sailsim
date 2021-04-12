@@ -24,6 +24,10 @@ class Frame():
         self.boatWaterDragX = self.boatWaterDragY = None
         self.boatWaterLiftX = self.boatWaterLiftY = None
 
+        self.boatMomentum = None
+        self.boatWaterDragMomentum = None
+        self.boatRudderMomentum = None
+
 
     def collectSimulation(self, simulation):
         """Collect and save information about the state of the simulation."""
@@ -37,6 +41,7 @@ class Frame():
         self.boatSpeedX = boat.speedX
         self.boatSpeedY = boat.speedY
         self.boatDirection = boat.direction
+        self.boatAngSpeed = boat.angSpeed
 
         self.boatMainSailAngle = boat.mainSailAngle
         self.boatRudderAngle = boat.rudderAngle
@@ -52,6 +57,10 @@ class Frame():
         (self.boatSailLiftX, self.boatSailLiftY) = (h.sailLiftX, h.sailLiftY)
         (self.boatWaterDragX, self.boatWaterDragY) = (h.waterDragX, h.waterDragY)
         (self.boatWaterLiftX, self.boatWaterLiftY) = (h.waterLiftX, h.waterLiftY)
+
+        self.boatMomentum = h.momentum
+        self.boatWaterDragMomentum = h.waterDragMomentum
+        self.boatRudderMomentum = h.rudderMomentum
 
     def collectWind(self, wind, x, y, size, distance):
         """Collect and save all information about the wind."""
@@ -74,12 +83,13 @@ class Frame():
         """Return string that contains all data about this frame."""
         data = [
             self.frameNr, self.time,
-            self.boatPosX, self.boatPosY, self.boatSpeedX, self.boatSpeedY, self.boatDirection,
+            self.boatPosX, self.boatPosY, self.boatSpeedX, self.boatSpeedY, self.boatDirection, self.boatAngSpeed,
             self.boatMainSailAngle, self.boatRudderAngle,
             self.boatApparentWindX, self.boatApparentWindY, self.boatApparentWindAngle, self.boatLeewayAngle, self.boatAngleOfAttack,
             self.boatForceX, self.boatForceY,
             self.boatSailDragX, self.boatSailDragY, self.boatSailLiftX, self.boatSailLiftY,
             self.boatWaterDragX, self.boatWaterDragY, self.boatWaterLiftX, self.boatWaterLiftY,
+            self.boatMomentum, self.boatWaterDragMomentum, self.boatRudderMomentum,
         ]
         data.extend(self.getWindList())
         dataStr = [f'{x:.4f}'.rstrip('0').rstrip('.') for x in data] # FIXME very slow and inflexible

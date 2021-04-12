@@ -1,6 +1,5 @@
-from math import sqrt, pi
+from math import sqrt, pi, sin, cos
 
-from sailsim.utils.constants import DENSITY_AIR, DENSITY_WATER
 from sailsim.utils.anglecalculations import angleKeepInterval, directionKeepInterval
 from sailsim.utils.coordconversion import cartToRadiusSq, cartToArg
 
@@ -13,39 +12,45 @@ class Boat:
 
     from .boatgetset import getPos, getSpeed, setDirection, setDirectionDeg, setMainSailAngle, setMainSailAngleDeg, setConstants
 
-    def __init__(self, posX=0, posY=0, direction=0, speedX=0, speedY=0):
+    def __init__(self, posX=0, posY=0, direction=0, speedX=0, speedY=0, angSpeed=0):
         """
         Create a boat.
 
         Args:
             posX:       x position of the boat (in m)
             posY:       y position of the boat (in m)
-            direction:  direction the boat is pointing
+            direction:  direction the boat is pointing (in rad)
             speedX:     speed in x direction (in m/s)
             speedY:     speed in y direction (in m/s)
+            angSpeed:   angular speed in z direction (in rad/s)
         """
         # Dynamic properties
         self.posX = posX
         self.posY = posY
-
         self.speedX = speedX
         self.speedY = speedY
-        self.direction = directionKeepInterval(direction)
 
-        self.rudderAngle = 0
-        self.maxRudderAngle = 80 / 180 * pi
+        self.direction = directionKeepInterval(direction)
+        self.angSpeed = angSpeed    # rad/s
 
         self.mainSailAngle = 0
         self.maxMainSailAngle = 80 / 180 * pi
+
+        self.rudderAngle = 0
+        self.maxRudderAngle = 80 / 180 * pi
 
         self.dataHolder = BoatDataHolder()
         self.sailor = None
 
         # Static properties
-        self.mass = 80
-        self.sailArea = 7.45
-        self.hullArea = 4 # arbitrary
-        self.centerboardArea = 1
+        self.length = 4.2           # m
+        self.width = 1.63           # m
+        self.mass = 80              # kg
+        self.momentumInertia = 1/12 * self.mass * (pow(self.length, 2) + pow(self.width, 2))  # kg/m^2
+        self.sailArea = 7.45        # m^2
+        self.hullArea = 4           # m^2
+        self.centerboardArea = 1    # m^2
+        self.rudderArea = .175      # m^2
 
         # Coefficients methods
         self.coefficientAirDrag = coefficientAirDrag
@@ -65,11 +70,20 @@ class Boat:
         self.speedX += forceX / self.mass * interval
         self.speedY += forceY / self.mass * interval
 
+    def applyMomentum(self, momentum, interval):
+        """Change angular speed according to a momentum given."""
+        # NOTE copied from applyForce()
+        # FIXME move this into applyForce()? Rename applyForce() function?
+        # △ω = α * t; M = I * α
+        # △ω = M / I * t
+        self.angSpeed += momentum / self.momentumInertia
+
     def moveInterval(self, interval):
         """Change position according to sailsDirection and speed."""
         # s = v * t
         self.posX += self.speedX * interval
         self.posY += self.speedY * interval
+        self.direction = directionKeepInterval(self.direction + self.angSpeed * interval)
 
     def runSailor(self):
         """Activate the sailing algorithm to decide what the boat should do."""
@@ -86,11 +100,12 @@ class Boat:
         # Set boat properties
         self.mainSailAngle = self.sailor.mainSailAngle
         self.direction = self.sailor.boatDirection
+        # self.rudderAngle = self.sailor.rudderAngle
 
 
     # Force calculations
     def resultingForce(self, trueWindX, trueWindY):
-        """Add up all reacting forces and return them as a tuple."""
+        """Add up all acting forces and return them as a tuple."""
         h = self.dataHolder
 
         # calculate apparent wind angle
@@ -106,12 +121,15 @@ class Boat:
         # if vector is (0, 0) set normalised vector to (0, 0) aswell
         (apparentWindNormX, apparentWindNormY) = (h.apparentWindX / h.apparentWindSpeed, h.apparentWindY / h.apparentWindSpeed) if not h.apparentWindSpeed == 0 else (0, 0) # normalised apparent wind vector
         (speedNormX, speedNormY) = (self.speedX / h.boatSpeed, self.speedY / h.boatSpeed) if not h.boatSpeed == 0 else (0, 0) # normalised speed vector
+        (dirNormX, dirNormY) = (sin(self.direction), cos(self.direction))
 
         h.leewayAngle = self.calcLeewayAngle()
         h.angleOfAttack = self.angleOfAttack(h.apparentWindAngle)
 
         # Sum up all acting forces
         (forceX, forceY) = (0, 0)
+
+        # Sail forces
         (h.sailDragX, h.sailDragY) = self.sailDrag(apparentWindNormX, apparentWindNormY, apparentWindSpeedSq)
         forceX += h.sailDragX
         forceY += h.sailDragY
@@ -119,6 +137,7 @@ class Boat:
         forceX += h.sailLiftX
         forceY += h.sailLiftY
 
+        # Hull forces
         (h.waterDragX, h.waterDragY) = self.waterDrag(speedNormX, speedNormY, boatSpeedSq)
         forceX += h.waterDragX
         forceY += h.waterDragY
@@ -126,32 +145,36 @@ class Boat:
         forceX += h.waterLiftX
         forceY += h.waterLiftY
 
+        # Rudder forces
+        (h.waterDragRudderX, h.waterDragRudderY) = self.waterDragRudder(dirNormX, dirNormY, boatSpeedSq)
+        forceX += h.waterDragRudderX
+        forceY += h.waterDragRudderY
+        (h.waterLiftRudderX, h.waterLiftRudderY) = self.waterLiftRudder(dirNormX, dirNormY, boatSpeedSq)
+        forceX += h.waterLiftRudderX
+        forceY += h.waterLiftRudderY
+
         (h.forceX, h.forceY) = (forceX, forceY)
         return (forceX, forceY)
 
-    def sailDrag(self, apparentWindNormX, apparentWindNormY, apparentWindSpeedSq):
-        """Calculate the force that is created when wind blows against the boat."""
-        force = 0.5 * DENSITY_AIR * self.sailArea * apparentWindSpeedSq * self.coefficientAirDrag(self.dataHolder.angleOfAttack)
-        return (force * apparentWindNormX, force * apparentWindNormY)
+    from .boat_forces import sailDrag, sailLift, waterDrag, waterLift, waterDragRudder, waterLiftRudder, waterLiftRudderScalar
 
-    def sailLift(self, apparentWindNormX, apparentWindNormY, apparentWindSpeedSq):
-        """Calculate the lift force that is created when the wind changes its direction in the sail."""
-        force = 0.5 * DENSITY_AIR * self.sailArea * apparentWindSpeedSq * self.coefficientAirLift(self.dataHolder.angleOfAttack)
-        if self.dataHolder.angleOfAttack < 0:
-            return (-force * apparentWindNormY, force * apparentWindNormX)  # rotate by 90° counterclockwise
-        return (force * apparentWindNormY, -force * apparentWindNormX)      # rotate by 90° clockwise
 
-    def waterDrag(self, speedNormX, speedNormY, boatSpeedSq):
-        """Calculate the drag force of the water that is decelerating the boat."""
-        force = -0.5 * DENSITY_WATER * (self.hullArea + self.centerboardArea) * boatSpeedSq * self.coefficientWaterDrag(self.dataHolder.leewayAngle)
-        return (force * speedNormX, force * speedNormY)
+    # Momentum calculations
+    def resultingMomentum(self):
+        """Sum all acting momenta."""
+        h = self.dataHolder
+        resMomentum = 0
 
-    def waterLift(self, speedNormX, speedNormY, boatSpeedSq):
-        """Calculate force that is caused by lift forces in the water."""
-        force = -0.5 * DENSITY_WATER * self.centerboardArea * boatSpeedSq * self.coefficientWaterLift(self.dataHolder.leewayAngle)
-        if self.dataHolder.leewayAngle < 0:
-            return (-force * speedNormY, force * speedNormX)    # rotate by 90° counterclockwise
-        return (force * speedNormY, -force * speedNormX)        # rotate by 90° clockwise
+        h.waterDragMomentum = self.waterDragMomentum()
+        resMomentum += h.waterDragMomentum
+
+        h.rudderMomentum = self.rudderMomentum(self.boatSpeedSq())
+        resMomentum += h.rudderMomentum
+
+        h.momentum = resMomentum
+        return resMomentum
+
+    from .boat_momenta import waterDragMomentum, rudderMomentum
 
 
     # Speed calculations
