@@ -1,9 +1,6 @@
-use core::fmt;
-use std::fmt::{Debug, Formatter};
-
 use crate::common::{Pose2D, Velocity2D, Wrench2D};
 
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Boat {
     name: String,
     pose: Pose2D,
@@ -27,11 +24,5 @@ impl Boat {
 
     fn get_wrench(&self) -> Wrench2D {
         Wrench2D::new(1.0, 1.0, 0.0)
-    }
-}
-
-impl fmt::Debug for Boat {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Boat \"{}\"@{:?}", self.name, self.pose)
     }
 }

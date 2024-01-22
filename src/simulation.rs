@@ -1,16 +1,21 @@
-use core::fmt;
+use custom_debug_derive::Debug;
 
 use crate::boat::Boat;
+use crate::wind::Windfield;
+
 #[derive(Debug, Default)]
 pub struct Simulation {
     boats: Vec<Boat>,
+    #[debug(skip)]
+    windfields: Vec<Box<dyn Windfield>>,
     time: f64,
 }
 
 impl Simulation {
-    pub fn new(boats: Vec<Boat>) -> Self {
+    pub fn new(boats: Vec<Boat>, windfields: Vec<Box<dyn Windfield>>) -> Self {
         Self {
             boats,
+            windfields,
             time: 0.0,
         }
     }

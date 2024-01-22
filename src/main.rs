@@ -1,16 +1,19 @@
 mod boat;
-mod simulation;
 mod common;
+mod simulation;
+mod wind;
 
 use boat::Boat;
 use simulation::Simulation;
+use wind::WindfieldStatic;
 
 // use crate::common::{Pose2D, Velocity2D};
 
 fn main() {
-    let mut boat = Boat::new("boat1");
-    let mut simulation = Simulation::new(vec![boat]);
-    println!("{:?}", simulation);
+    let boat = Boat::new("boat1");
+    let wind = WindfieldStatic::new("wind1", 0.0, 0.0);
+    let mut simulation = Simulation::new(vec![boat], vec![Box::new(wind)]);
+    println!("{:.2?}", simulation);
     simulation.run(100, 0.01);
-    println!("{:?}", simulation);
+    println!("{:.2?}", simulation);
 }
