@@ -7,4 +7,5 @@ edition = "2021"
 
 [dependencies]
 custom_debug_derive = "0.6.1"
-nalgebra = "*"
+nalgebra = "0.33.0"
+peroxide = "0.37.9"

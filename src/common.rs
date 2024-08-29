@@ -60,33 +60,30 @@ impl Wrench2D {
 // Debug trait implementations
 impl fmt::Debug for Pose2D {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("")
+        f.debug_tuple("Pose2D")
             .field(&self.point.x)
             .field(&self.point.y)
             .field(&self.heading)
             .finish()
-        // write!(f, "{:.2}|{:.2}:{:.1}°", self.point.x, self.point.y, self.heading / PI * 180.0)
     }
 }
 
 impl fmt::Debug for Velocity2D {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("")
+        f.debug_tuple("Velocity")
             .field(&self.vector.x)
             .field(&self.vector.y)
             .field(&self.angular)
             .finish()
-        // write!(f, "{:.2}|{:.2}:{:.1}°", self.point.x, self.point.y, self.heading / PI * 180.0)
     }
 }
 
 impl fmt::Debug for Wrench2D {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("")
+        f.debug_tuple("Wrench2D")
             .field(&self.vector.x)
             .field(&self.vector.y)
             .field(&self.torque)
             .finish()
-        // write!(f, "{:.2}|{:.2}:{:.1}°", self.point.x, self.point.y, self.heading / PI * 180.0)
     }
 }

@@ -1,8 +1,6 @@
 use std::ops::Add;
 use nalgebra::Vector2;
 
-// use wind::Windfield;
-
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Wind {
     vector: Vector2<f64>,

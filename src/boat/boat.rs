@@ -1,28 +1,26 @@
-use crate::common::{Pose2D, Velocity2D, Wrench2D};
+use crate::math::{Pose2D, Velocity2D, Wrench2D};
+use crate::boat::consts::*;
 
 #[derive(Clone, Debug, Default)]
 pub struct Boat {
     name: String,
-    pose: Pose2D,
-    velocity: Velocity2D,
 }
 
 impl Boat {
-    pub fn new(name: &str) -> Boat {
+    pub fn new(name: impl Into<String>) -> Boat {
         Boat {
-            name: String::from(name),
-            pose: Pose2D::default(),
-            velocity: Velocity2D::default(),
+            name: name.into(),
         }
     }
 
-    pub fn step(&mut self, dt: f64) {
-        let wrench = self.get_wrench();
-        self.velocity.apply(&wrench, dt);
-        self.pose.apply(&self.velocity, dt)
+    pub fn resulting_force(&self, pos_x: f64, pos_y: f64, heading: f64, vel_x: f64, vel_y: f64, vel_ang: f64) -> Wrench2D {
+        let pose = Pose2D::new(pos_x, pos_y, heading);
+        let velocity = Velocity2D::new(vel_x, vel_y, vel_ang);
+
+        self.get_wrench()
     }
 
     fn get_wrench(&self) -> Wrench2D {
-        Wrench2D::new(1.0, 1.0, 0.0)
+        Wrench2D::new(1.0, 0.01, 0.0)
     }
 }

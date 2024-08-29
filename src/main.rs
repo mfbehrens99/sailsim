@@ -1,5 +1,5 @@
 mod boat;
-mod common;
+mod math;
 mod simulation;
 mod wind;
 
@@ -12,8 +12,8 @@ use wind::WindfieldStatic;
 fn main() {
     let boat = Boat::new("boat1");
     let wind = WindfieldStatic::new("wind1", 0.0, 0.0);
-    let mut simulation = Simulation::new(vec![boat], vec![Box::new(wind)]);
-    println!("{:.2?}", simulation);
-    simulation.run(100, 0.01);
-    println!("{:.2?}", simulation);
+    let mut simulation = Simulation::new(boat, vec![Box::new(wind)]);
+    println!("{:.2?}", simulation.boat);
+    simulation.run(10000.0, 1e-6);
+    println!("{:.2?}", simulation.boat);
 }
