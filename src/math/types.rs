@@ -3,6 +3,8 @@ use fmt::Formatter;
 use nalgebra::Vector2;
 use std::ops::Add;
 
+use super::cross_2d;
+
 #[derive(Clone, Copy, Default)]
 pub struct Pose2D {
     point: Vector2<f64>,
@@ -15,11 +17,6 @@ impl Pose2D {
             point: Vector2::new(pos_x, pos_y),
             heading,
         }
-    }
-
-    pub fn apply(&mut self, velocity: &Velocity2D, dt: f64) {
-        self.point += velocity.vector * dt;
-        self.heading += velocity.angular * dt;
     }
 }
 
@@ -36,11 +33,6 @@ impl Velocity2D {
             angular: vel_ang,
         }
     }
-
-    pub fn apply(&mut self, wrench: &Wrench2D, dt: f64) {
-        self.vector += wrench.force * dt;
-        self.angular += wrench.torque * dt;
-    }
 }
 
 #[derive(Clone, Copy, Default)]
@@ -56,11 +48,25 @@ impl Wrench2D {
             torque,
         }
     }
+
+    pub fn from_force_lever(force: Vector2<f64>, lever: Vector2<f64>) -> Wrench2D {
+        let torque = cross_2d(lever, force);
+        Wrench2D { force, torque }
+    }
 }
 
 impl Into<(f64, f64, f64)> for Wrench2D {
     fn into(self) -> (f64, f64, f64) {
-        (self.force[0], self.force[1], self.torque)
+        (self.force.x, self.force.y, self.torque)
+    }
+}
+
+impl From<(f64, f64, f64)> for Wrench2D {
+    fn from(value: (f64, f64, f64)) -> Self {
+        Self {
+            force: Vector2::new(value.0, value.1),
+            torque: value.2,
+        }
     }
 }
 

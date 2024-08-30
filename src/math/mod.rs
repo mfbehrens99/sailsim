@@ -1,4 +1,8 @@
+mod functions;
 mod types;
-mod consts;
 
+#[cfg(test)]
+mod tests;
+
+pub use functions::*;
 pub use types::{Pose2D, Velocity2D, Wrench2D};
